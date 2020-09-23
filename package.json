@@ -1,0 +1,22 @@
+{
+  "name": "coldun",
+  "version": "0.0.1",
+  "description": "diagram markup prototype",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttrider/coldun.git"
+  },
+  "keywords": [
+    "diagram"
+  ],
+  "author": "ttrider",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ttrider/coldun/issues"
+  },
+  "homepage": "https://github.com/ttrider/coldun#readme"
+}
