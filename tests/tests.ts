@@ -4,6 +4,8 @@ import { parser } from "../src/parser";
 test("simple", () => {
 
     const file = loadFile("poc");
+    const context = parser(file);
+
     expect(file.name).toMatch("poc");
 
 });
@@ -12,6 +14,7 @@ test("simple", () => {
 test("regex mode", () => {
 
     const file = loadFile("timingtest");
-    parser(file);
+    const context = parser(file);
+    console.info(JSON.stringify(context, null, 2));
     expect(file.name).toMatch("timingtest");
 });

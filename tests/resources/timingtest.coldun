@@ -4,7 +4,7 @@
 vova
 ]
 ( rounded rectangle block ]
-( oval ) ``` // how to make  a circle? ```
+( oval  ``` // how to make  a circle? ``` )
 { cloud }
 < rombus >
 ( pipe ()@a123
@@ -17,7 +17,7 @@ code block
 more here
 event more
 ```
-      [     just a text ]:z123@v4342 
+      [     just a text ]:z123@v4342 }
 [||
 [ sub element ]
  }
@@ -30,3 +30,4 @@ event more
 [ arrow to left |>
 [| horizontal group |]
 [|| vertical group ||]
+||]

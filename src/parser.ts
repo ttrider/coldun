@@ -6,80 +6,151 @@ export interface ParserSource {
 
 
 interface ParserContext extends ParserSource {
-
+    rootShape: Shape;
 }
 
 interface Shape {
 
-    parent?: Shape;
-    leftToken: number;
-    leftTokenEndPos: number;
+
+
+    leftToken?: number;
+    leftTokenStartPos?: number;
+    leftTokenEndPos?: number;
+
+    rightToken?: number;
+    rightTokenStartPos?: number;
+    rightTokenEndPos?: number;
+
+    text?: string;
+
+    startTextPos?: number;
+
+    children: Shape[];
 
 }
 
 export function parser(source: string | ParserSource) {
 
-    const context: ParserContext = (typeof source === "string") ? { source } : source;
+    const context: ParserContext =
+    {
+        rootShape: { children: [] },
+        ...((typeof source === "string") ? { source } : source)
+    };
 
-    collectStartTokens(context);
+    if (!context.source.endsWith("\n")) {
+        context.source += "\n";
+    }
+
+    collectTokens(context);
+
+    return context;
 }
 
-
-
-function collectStartTokens(context: ParserContext) {
+function collectTokens(context: ParserContext) {
 
     const excludeRegions = processExcludeRegions();
 
-    const regex = new RegExp(pattern, "gm");
+    //const regex = new RegExp(pattern, "gm");
+    const regex = /(\/\/.*)|(^\s*((\[)|(\()|(\/)|(\{)|(\<)|(\|)|(\<\[)|(\<\|)|(\[\|)|(\[\|\|))\s+)|(\s+((\])|(\()|(\\)|(\{)|(\>)|(\|)|(\]\>)|(\|\>)|(\|\]\ )|(\|\|\])|(\(\))|(\]\))|(\}\}))(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?[\s$])/gm;
 
+
+    const shapes: Shape[] = [];
     let state = 0;
-    let current: Shape | undefined;
+    let current: Shape | undefined = context.rootShape;
 
     let m: RegExpExecArray | null;
     while ((m = regex.exec(context.source)) !== null) {
+
         // This is necessary to avoid infinite loops with zero-width matches
         if (m.index === regex.lastIndex) {
             regex.lastIndex++;
         }
 
-
-
         processMatch(m);
-
-
-
-
-
-        leftTokenmap
-
-
-
-
     }
 
     function processMatch(m: RegExpExecArray) {
         const index = m.index;
-        const length = m.length;
+        const length = m[0].length;
 
         // validate position
         // TODO: need more efficient algorythm here
         if (excludeRegions.findIndex(item => item.start <= index && item.end > index) !== -1) {
+            console.info("excluded");
             return;
         }
 
         if (m[inlineCommentIndex]) {
             // found another comment;
             excludeRegions.push({ start: m.index, end: m.index + m.length });
+            console.info("inline comment found: excluded");
             return;
         }
 
         for (let i = leftTokenStartIndex; i < leftTokenEndIndex; i++) {
             if (m[i]) {
+
+                console.info(`new left shape id: ${i} (${m[i]})`);
+
+                const newShape = {
+                    leftToken: i,
+                    leftTokenStartPos: index,
+                    leftTokenEndPos: index + length,
+
+                    children: [],
+
+                    startTextPos: index + length
+                };
+
                 if (!current) {
-                    current = { leftToken: i, leftTokenEndPos: index + length };
-                } else {
-                    current = { parent: current, leftToken: i, leftTokenEndPos: index + length };
+                    // report error
+                    return;
                 }
+
+
+                // check for text
+                if (current.startTextPos !== undefined) {
+                    const textNode = {
+                        children: [],
+                        text: context.source.substring(current.startTextPos, index)
+                    };
+
+                    current.children.push(textNode);
+                }
+
+                current.children.push(newShape);
+                shapes.push(current);
+                current = newShape;
+                return;
+            }
+        }
+
+        for (let i = rightTokenStartIndex; i < rightTokenEndIndex; i++) {
+            if (m[i]) {
+                console.info(`new right shape id: ${i} (${m[i]})`);
+
+                if (!current) {
+                    //report error
+                    return;
+                }
+
+                if (current.startTextPos) {
+                    const textNode = {
+                        children: [],
+                        text: context.source.substring(current.startTextPos, index)
+                    };
+
+                    current.children.push(textNode);
+                }
+
+                current.rightToken = i;
+                current.rightTokenStartPos = index;
+                current.rightTokenEndPos = index + length;
+
+                const startTextPos = current.rightTokenEndPos;
+
+                current = shapes.pop();
+                if (current) { current.startTextPos = startTextPos; }
                 return;
             }
         }
@@ -161,7 +232,7 @@ const rightTokenmap = [
 ];
 
 const inlineCommentIndex = 1;
-const leftTokenStartIndex = 5;
+const leftTokenStartIndex = 4;
 const leftTokenEndIndex = leftTokenStartIndex + leftTokenmap.length;
 
 const rightTokenStartIndex = leftTokenEndIndex + 2; //16
