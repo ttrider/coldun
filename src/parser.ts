@@ -16,16 +16,23 @@ interface Shape {
     leftToken?: number;
     leftTokenStartPos?: number;
     leftTokenEndPos?: number;
+    leftTokenText?: string;
 
     rightToken?: number;
     rightTokenStartPos?: number;
     rightTokenEndPos?: number;
+    rightTokenText?: string;
 
     text?: string;
 
     startTextPos?: number;
 
     children: Shape[];
+
+    model?: ShapeModel;
+}
+
+interface ShapeModel {
 
 }
 
@@ -42,6 +49,8 @@ export function parser(source: string | ParserSource) {
     }
 
     collectTokens(context);
+
+    processTokens(context);
 
     return context;
 }
@@ -76,26 +85,27 @@ function collectTokens(context: ParserContext) {
         // validate position
         // TODO: need more efficient algorythm here
         if (excludeRegions.findIndex(item => item.start <= index && item.end > index) !== -1) {
-            console.info("excluded");
+            //console.info("excluded");
             return;
         }
 
         if (m[inlineCommentIndex]) {
             // found another comment;
             excludeRegions.push({ start: m.index, end: m.index + m.length });
-            console.info("inline comment found: excluded");
+            //console.info("inline comment found: excluded");
             return;
         }
 
         for (let i = leftTokenStartIndex; i < leftTokenEndIndex; i++) {
             if (m[i]) {
 
-                console.info(`new left shape id: ${i} (${m[i]})`);
+                //console.info(`new left shape id: ${i} (${m[i]})`);
 
                 const newShape = {
                     leftToken: i,
                     leftTokenStartPos: index,
                     leftTokenEndPos: index + length,
+                    leftTokenText: m[i],
 
                     children: [],
 
@@ -127,7 +137,7 @@ function collectTokens(context: ParserContext) {
 
         for (let i = rightTokenStartIndex; i < rightTokenEndIndex; i++) {
             if (m[i]) {
-                console.info(`new right shape id: ${i} (${m[i]})`);
+                //console.info(`new right shape id: ${i} (${m[i]})`);
 
                 if (!current) {
                     //report error
@@ -146,6 +156,7 @@ function collectTokens(context: ParserContext) {
                 current.rightToken = i;
                 current.rightTokenStartPos = index;
                 current.rightTokenEndPos = index + length;
+                current.rightTokenText = m[i];
 
                 const startTextPos = current.rightTokenEndPos;
 
@@ -195,10 +206,41 @@ function collectTokens(context: ParserContext) {
     }
 }
 
+function processTokens(context: ParserContext) {
 
+    processShape(context.rootShape);
+
+
+
+    function processShape(shape: Shape) {
+
+        const shapeCode = (shape.leftToken ?? 0) * 100 + (shape.rightToken ?? 0);
+        console.info(shapeCode);
+        const shapeModel = shapeModels[shapeCode];
+        if (!shapeModel) throw new Error("incorrect shapeCode");
+
+        shape.model = shapeModel;
+
+        if (shape.children) { shape.children.forEach(s => processShape(s)); }
+    }
+
+
+}
 
 
 export default parser;
+
+
+
+const shapeModels: { [key: number]: ShapeModel } = {
+
+    0: {
+        // text block
+    },
+    416: {
+        // [ rectangle block ]
+    }
+};
 
 const comentToken = "(\\/\\/.*)";
 
@@ -249,7 +291,7 @@ const pattern =
     + ")(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?\\s)";
 
 
-console.log(pattern);
+//console.log(pattern);
 
 
 
