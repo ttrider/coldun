@@ -12,11 +12,12 @@ interface ParserContext extends ParserSource {
 interface Shape {
 
 
-
+    leftTokenText?: string;
     leftToken?: number;
     leftTokenStartPos?: number;
     leftTokenEndPos?: number;
 
+    rightTokenText?: string;
     rightToken?: number;
     rightTokenStartPos?: number;
     rightTokenEndPos?: number;
@@ -50,8 +51,8 @@ function collectTokens(context: ParserContext) {
 
     const excludeRegions = processExcludeRegions();
 
-    //const regex = new RegExp(pattern, "gm");
-    const regex = /(\/\/.*)|(^\s*((\[)|(\()|(\/)|(\{)|(\<)|(\|)|(\<\[)|(\<\|)|(\[\|)|(\[\|\|))\s+)|(\s+((\])|(\()|(\\)|(\{)|(\>)|(\|)|(\]\>)|(\|\>)|(\|\]\ )|(\|\|\])|(\(\))|(\]\))|(\}\}))(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?[\s$])/gm;
+    const regex = new RegExp(pattern, "gm");
+    //const regex = /(\/\/.*)|(^\s*((\[)|(\()|(\/)|(\{)|(\<)|(\|)|(\<\[)|(\<\|)|(\[\|)|(\[\|\|))\s+)|(\s+((\])|(\()|(\\)|(\{)|(\>)|(\|)|(\]\>)|(\|\>)|(\|\]\ )|(\|\|\])|(\(\))|(\]\))|(\}\}))(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?[\s$])/gm;
 
 
     const shapes: Shape[] = [];
@@ -90,9 +91,10 @@ function collectTokens(context: ParserContext) {
         for (let i = leftTokenStartIndex; i < leftTokenEndIndex; i++) {
             if (m[i]) {
 
-                console.info(`new left shape id: ${i} (${m[i]})`);
+                // console.info(`new left shape id: ${i} (${m[i]})`);
 
                 const newShape = {
+                    leftTokenText: m[i],
                     leftToken: i,
                     leftTokenStartPos: index,
                     leftTokenEndPos: index + length,
@@ -110,12 +112,14 @@ function collectTokens(context: ParserContext) {
 
                 // check for text
                 if (current.startTextPos !== undefined) {
-                    const textNode = {
-                        children: [],
-                        text: context.source.substring(current.startTextPos, index)
-                    };
+                    if (current.startTextPos !== index) {
+                        const textNode = {
+                            children: [],
+                            text: context.source.substring(current.startTextPos, index)
+                        };
 
-                    current.children.push(textNode);
+                        current.children.push(textNode);
+                    }
                 }
 
                 current.children.push(newShape);
@@ -127,7 +131,7 @@ function collectTokens(context: ParserContext) {
 
         for (let i = rightTokenStartIndex; i < rightTokenEndIndex; i++) {
             if (m[i]) {
-                console.info(`new right shape id: ${i} (${m[i]})`);
+                // console.info(`new right shape id: ${i} (${m[i]})`);
 
                 if (!current) {
                     //report error
@@ -135,14 +139,17 @@ function collectTokens(context: ParserContext) {
                 }
 
                 if (current.startTextPos) {
-                    const textNode = {
-                        children: [],
-                        text: context.source.substring(current.startTextPos, index)
-                    };
+                    if (current.startTextPos !== index) {
+                        const textNode = {
+                            children: [],
+                            text: context.source.substring(current.startTextPos, index)
+                        };
 
-                    current.children.push(textNode);
+                        current.children.push(textNode);
+                    }
                 }
 
+                current.rightTokenText = m[i];
                 current.rightToken = i;
                 current.rightTokenStartPos = index;
                 current.rightTokenEndPos = index + length;
@@ -246,7 +253,7 @@ const pattern =
     + leftTokenmap.map(t => "(" + t.replace(/./gm, (v) => "\\" + v) + ")").join("|")
     + ")\\s+)|(\\s+("
     + rightTokenmap.map(t => "(" + t.replace(/./gm, (v) => "\\" + v) + ")").join("|")
-    + ")(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?\\s)";
+    + ")(:[a-zA-Z][a-zA-Z0-9_]*)?(@[a-zA-Z][a-zA-Z0-9_]*)?[\\s$])";
 
 
 console.log(pattern);
